@@ -44,7 +44,6 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
             let z = new InteractionZone(this.scene, current, debug);
 
             if (z.Blocks && z.Blocks.key) {
-                z.body.static = true;
                 z.body.setImmovable(true);
                 scene.physics.add.collider(scene.player, z);
                 scene.physics.add.collider(scene.flit, z);
