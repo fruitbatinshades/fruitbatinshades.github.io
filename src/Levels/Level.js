@@ -1,9 +1,9 @@
 /// <reference path="../../defs/phaser.d.ts" />
 import Player from '../Sprites/Player.js';
 import Flit from '../Sprites/Flit.js';
-import Boxes from '../Sprites/boxes.js';
+import Boxes from '../Sprites/Boxes.js';
 
-import Enums from '../Levels/Tilemaps.js';
+import Enums from './Tilemaps.js';
 import Interaction from '../Sprites/Interaction.js';
 /**
  * Class that hold the level specific data and operations
