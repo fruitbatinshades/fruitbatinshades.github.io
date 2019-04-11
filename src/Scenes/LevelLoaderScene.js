@@ -10,22 +10,32 @@ export default class LevelLoaderScene extends Phaser.Scene {
 
     switchIds;
     
-    constructor(key) {
+    startScene = 'LevelLoader';
+    startLevel = 'Example';
+
+    constructor(key, level) {
         super(key);
     }
     preload() {
+        let splash = this.add.image(0, 0, 'SplashBackground').setOrigin(0, .15);
         var progressBar = this.add.graphics();
         var progressBox = this.add.graphics();
-        progressBox.fillStyle(0x222222, 0.8);
-        progressBox.fillRect(240, 270, 320, 50);
-        let splash = this.add.image(0, 0, 'SplashBackground');
         
         var width = this.cameras.main.width;
         var height = this.cameras.main.height;
+        var scale = splash.width / width;
+        splash.setScale(scale , scale);
 
-        this.add.image(width / 2, 100, 'Logo');
-        this.PlayButton = this.add.image(width / 2, 420, 'WoodButton');
-        let playtext = this.make.text({
+        var left = width / 2 - 200;
+        progressBox.fillStyle(0x222222, 0.8);
+        progressBox.fillRect(left, 270, 400, 50);
+
+        //this.add.image(width / 2, 100, 'Logo');
+        this.PlayButton = this.add.image(width / 2, 460, 'WoodButton');
+        this.PlayButton.alpha = .5;
+        this.PlayButton.setInteractive();
+
+        this.playtext = this.make.text({
             x: this.PlayButton.x,
             y: this.PlayButton.y,
             text: 'Play',
@@ -33,10 +43,9 @@ export default class LevelLoaderScene extends Phaser.Scene {
                 font: '30px monospace',
                 fill: '#ffffff'
             }
-        }).setOrigin(.5,.5);
-        this.setStroke(playtext);
-
-        splash.setScale(1.5, 1.5);
+        }).setOrigin(.5, .5);
+        this.playtext.alpha = .5
+        this.setStroke(this.playtext);
 
         var loadingText = this.make.text({
             x: width / 2,
@@ -79,8 +88,8 @@ export default class LevelLoaderScene extends Phaser.Scene {
         this.load.on('progress', function (value) {
             percentText.setText(parseInt(value * 100) + '%');
             progressBar.clear();
-            progressBar.fillStyle(0xffffff, 1);
-            progressBar.fillRect(250, 280, 300 * value, 30);
+            progressBar.fillStyle(0x00AA00, 1);
+            progressBar.fillRect(left, 280, 400 * value, 30);
         });
 
         this.load.on('fileprogress', function (file) {
@@ -102,61 +111,50 @@ export default class LevelLoaderScene extends Phaser.Scene {
             // this.scene.stop();
             // this.scene.restart();
         }, this);
-        //Load the selected level
-        this.load.tilemapTiledJSON('map', 'assets/Levels/L1.json');
+
+        //get the name of the scene to start from the querystring
+        let s = getQueryStringValue('scene');
+        let l = getQueryStringValue('level');
+        if (s !== '') this.startScene = s;
+        if (l !== '') this.startLevel = l;
+
+        this.load.tilemapTiledJSON('map', `assets/Levels/${this.startLevel}.json`);
         this.load.audioSprite('sfx', 'assets/Sound/FlitBob.json', [
             'assets/Sound/FlitBob.ogg',
             'assets/Sound/FlitBob.mp3'
         ]);
     }
     create() { 
-        this.level.buildLevel(this);
-        
-        if(!this.scene.HUD)
-            this.scene.add('HUD', HUD, true, { x: 400, y: 300 });
-    }
-    mapLoaded() { 
-        // create the map in the scene
-        this.map = this.make.tilemap({ key: 'map' });
-        //create the level 
-        this.level = new Level(this);
-        
-    }
-    update() {
-        //Switch characters
-        if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
-            this.switchCharacter();
-        }
-        //only pass keyboard to player if not switching
-        if (!this.level._ChangingPlayer) {
-            this.level.ActivePlayer.update(this.cursors, this.spaceKey);
-        }
-        //sync the background to the camera
-        Phaser.Actions.Call(this.level.sky.getChildren(), function (layer) {
-            layer.x = this.cameras.main.scrollX;
-            layer.tilePositionX = this.cameras.main.scrollX ;
+        console.log('create');
+        this.PlayButton.alpha = 1;
+        this.playtext.alpha = 1;
+        this.PlayButton.on('pointerdown', function () {
+            let l = new Level('Level', this.map);
+            this.scene.add('Level', l, true);
         }, this);
     }
-    switchCharacter() {
-        //stop current player activity
-        this.level.ActivePlayer.idle();
-        this.level.ActivePlayer.body.setVelocityX(0);
-        //get the other character
-        this.level.ActivePlayer = this.level.ActivePlayer.is('Bob') ? this.flit : this.player;
+    mapLoaded() { 
+        console.log('map loaded');
+        // create the map in the scene
+        this.map = this.make.tilemap({ key: 'map' });
+        //load backgrounds from map.properties.Backgrounds (Pipe delimeted filename from tiled)
+        this.load.setPath('assets/Levels/Backgrounds/');
+        this.map.properties["Backgrounds"].split('|').forEach((b) => {
+            let name = b.substr(0, b.lastIndexOf('.'));
+            b.endsWith('.svg') ? this.load.svg(name, b) : this.load.image(name, b);
+        });
 
-        this.level._ChangingPlayer = true;
-        //pan the camera 
-        this.cameras.main.stopFollow();
-        this.cameras.main.pan(this.level.ActivePlayer.x, this.level.ActivePlayer.y, 500, 'Sine.easeInOut', true, (cam, complete, x, y) => {
-            if (complete === 1) {
-                this.cameras.main.startFollow(this.level.ActivePlayer, true, .1, .1);
-                this.level._ChangingPlayer = false;
-            }
+        //load tilesets
+        this.load.setPath('assets/Levels/');
+        this.map.tilesets.forEach((b) => {
+            this.load.image(b.name);
+            console.log(b.name);
         });
     }
+
     setStroke(txt) {
-        txt.setShadow(2, 2, '#333333', 2, true, false)
-            .setStroke('#0066AA', 3)
+        txt.setShadow(3, 3, '#333333', 2, true, false)
+            .setStroke('#0066AA', 4)
             .setFontStyle('bold');
     }
 }

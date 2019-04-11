@@ -15,14 +15,34 @@ export default class Enums {
             StateOn: 3,
             StateOff: 4,
             PressureOff: 5,
-            PressueOn: 6,
+            PressureOn: 6,
             StopRightL: 7,
             StopRightM: 8,
             StopRightR: 9,
             StopLeftL: 10,
             StopLeftM: 11,
-            StopLeftR: 12
+            StopLeftR: 12,
+            PlantPot1: 25,
+            PlantPot2: 26,
+            Stone1: 27,
+            Stone2: 28,
+            Box1: 29,
+            Box2: 30,
+            Shroom: 31,
+            Fly: 32,
+            BigStoneA: 33,
+            BigStoneB: 34,
+            Honey: 35,
+            Fizz: 36
         };
+        //annoyinglly this has to come from the spritesheet so do not add firstGid :(
+        this.Boxes = [
+            this.Component.PlantPot1 - 1,
+            this.Component.PlantPot2 - 1,
+            this.Component.Stone1 -1,
+            this.Component.Stone2 -1,
+        ]
+
         //remove 1 from the firstgid so the first id matches when we +=
         firstgid--;
         //update the image indexes with the layer firstgid
@@ -49,15 +69,46 @@ export default class Enums {
             this.Component.StateOn,
             this.Component.StateOff,
             this.Component.PressureOff,
-            this.Component.PressueOn
+            this.Component.PressureOn
         ];
-     
+        /** Items that are collectable */
+        this.Collectables = [
+            this.Component.Fly,
+            this.Component.Shroom,
+            this.Component.Honey,
+            this.Component.Fizz
+        ];
+    }
+    contains(value) {
+        return Object.keys(this.Component).find(key => this.Component[key] === value);
     }
     ComponentTilesStops() {
         return this.Stops;
     }
     ComponentTilesSwitches() {
         return this.Switches;
+    }
+    tileType(value) {
+        return {
+            isSwitch: this.isSwitch(value),
+            isStop: this.isStop(value),
+            //isPressure: this.isPressure(value),
+            isBlockActivated: this.isBlockActivated(value)
+        };
+        // if (this.isBlockActivated(value)) return 'block';
+        // if (this.isSwitch(value)) return 'switch';
+        // if (this.isStop(value)) return 'stop';
+        // return null;
+        
+    }
+    isSwitch(value) {
+        return this.Switches.indexOf(value) !== -1;
+    }
+    isBlockActivated(value) {
+        return value === this.Component.PressureOff || value === this.Component.PressureOn;
+    }
+    isStop(index) {
+        return this.Stops.indexOf(index) !== -1;
     }
     /** 
      * Get the next state for the switch
@@ -71,7 +122,6 @@ export default class Enums {
                 return index === this.Component.StateOff ? this.Component.StateOn : this.Component.StateOff;
             if (index === this.Component.PressureOff || index === this.Component.PressureOn)
                 return index === this.Component.PressureOff ? this.Component.PressureOn : this.Component.PressureOff;
-            
         }
         return index;
     }

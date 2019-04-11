@@ -1,3 +1,5 @@
+import Enums from '../Levels/Tilemaps.js';
+
 /**
  * Class populated from the tilemap Interaction Layer rectangles
  */
@@ -10,43 +12,72 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     Action = null;
     //The effect to use on the player (injure)
     Effect = null;
+    //The visual effect to use (toggleVisibility, fadeAndDisable)
+    Transition = null;
     //Unique name of the zone
     name = null;
     //Ref to the tile
     TileObj = null;
+    Affect = null;
     Blocks = null;
     Related;
     Implementation;
-    //The visual effect to use (toggleVisibility, fadeAndDisable)
-    Transition = { key: 'toggleVisibility' };
-    constructor(scene, tileObj, debug) {
+    lookup;
+    tileType;
+    isActive = true;
+    switchOn = true;
+
+    constructor(scene, tileObj, interaction, debug) {
         super(scene, tileObj.x + 2, tileObj.y + 2, tileObj.width - 4, tileObj.height - 4);
         
+        if (tileObj.name === null || tileObj.name === '')
+            throw `Zone at ${tileObj} does not have a name`;
+
+        this.interaction = interaction;
         this.setOrigin(0);
         scene.physics.world.enable(this);
         this.body.setAllowGravity(false).moves = false;
         this.tileObj = tileObj;
         this.properties = tileObj.properties;
         this.name = tileObj.name;
+        //if ZoneHeight is provided adjust the zone, used to make the zone smaller than the tile (switches, injure)
+        if (this.properties && this.properties.ZoneHeight) {
+            this.body.reset(this.body.x, this.body.bottom - parseInt(this.properties.ZoneHeight));
+            this.body.height = parseInt(this.properties.ZoneHeight);
+        }
+        //hide tiles if the zone not visible
+        if (!tileObj.visible) {
+            this.getVisibleTiles(scene).forEach(x => x.visible = false);
+            this.active = false;
+            this.isActive = false;
+        }
 
-        if (tileObj.properties.GroupKey)
-            this.GroupKey = this.splitMapProperty(tileObj.properties.GroupKey);
-        if (tileObj.properties.Target)
-            this.Target = this.splitMapProperty(tileObj.properties.Target);
-        if (tileObj.properties.Action)
-            this.Action = this.splitMapProperty(tileObj.properties.Action);
-        if (tileObj.properties.Effect)
-            this.Effect = this.splitMapProperty(tileObj.properties.Effect);
-        if (tileObj.properties.Transition)
-            this.Transition = this.splitMapProperty(tileObj.properties.Transition);
-        if (tileObj.properties.Implementation) 
-            this.Implementation = this.splitMapProperty(tileObj.properties.Implementation);
-        if (tileObj.properties.Blocks) {
-            this.Blocks = this.splitMapProperty(tileObj.properties.Blocks);
-            
+        //the tile on the switch layer to see what type it is
+        let tile = scene.map.getTileAt(tileObj.x / 64, tileObj.y / 64, false, 'InteractionTiles');
+        if(tile !== null) this.tileType = this.scene.switchIds.tileType(tile.index);
+        
+        if (tileObj.properties) {
+            if (typeof tileObj.properties.GroupKey !== 'undefined')
+                this.GroupKey = new InteractionParams(tileObj.properties.GroupKey);
+            if (typeof tileObj.properties.Target !== 'undefined')
+                this.Target = new InteractionParams(tileObj.properties.Target);
+            if (typeof tileObj.properties.Affect !== 'undefined')
+                this.Affect = new InteractionParams(tileObj.properties.Affect);
+            if (typeof tileObj.properties.Action !== 'undefined')
+                this.Action = new InteractionParams(tileObj.properties.Action);
+            if (typeof tileObj.properties.Effect !== 'undefined')
+                this.Effect = new InteractionParams(tileObj.properties.Effect);
+            if (typeof tileObj.properties.Transition !== 'undefined')
+                this.Transition = new InteractionParams(tileObj.properties.Transition);
+            if (typeof tileObj.properties.Implementation !== 'undefined')
+                this.Implementation = new InteractionParams(tileObj.properties.Implementation);
+            if (typeof tileObj.properties.Blocks !== 'undefined') {
+                this.Blocks = new InteractionParams(tileObj.properties.Blocks);
+            }
         }
         
         //TODO: strip this out on build ???
+        //Add tooltips on debug to show the properties from Tiled
         if (debug) {
             scene.add.text(tileObj.x, tileObj.y, tileObj.name, {
                 font: '10px monospace',
@@ -67,31 +98,112 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
             this.setInteractive();
         }
     }
-    onBlocked(player, zone) {
-        console.log('blocked');
-        return true;
+    
+    /**
+     * Process this zone and its related ones
+     * @param {Player} player player in zone
+     * @param {bool} iterateGroup Only set this on the trigger zone else you'll get an endless loop and stack overflow
+     */
+    process(player, iterateGroup, parent) {
+         if (this.isActive) {
+        //     this.State = !this.State;
+            this.body.debugBodyColor = !this.State ? 0xFF0000 : 0x00FF00;
+
+            //If its a switch, change its state
+            if (this.tileType && this.tileType.isSwitch) {
+                let switchTile = this.scene.map.getTileAt(this.tileObj.x / 64, this.tileObj.y / 64, false, 'InteractionTiles')
+                switchTile.index = this.interaction.scene.switchIds.switchState(switchTile.index);
+                this.switchOn = !this.switchOn;
+            }
+            //get the target zone
+            let target;
+            if (this.Target !== null && this.Target.key !== null) {
+                target = this.interaction.getByKey(this.Target.key);
+            }
+            // //if its a switch and we need to iterate, process the group
+            // if (this.tileType && this.tileType.isSwitch && iterateGroup) {
+            //     if (this.GroupKey !== null && this.GroupKey.key !== null) {
+            //         //find the objects that have matching keys and convert to array
+            //         let group = this.interaction.getGroup(this.GroupKey.key);
+            //         if (group && group.length != 0) {
+            //             for (let i = 0; i < group.length; i++) {
+            //                 if (group[i][1].name !== this.name) {
+            //                     //dont pass in the player for grouped actions
+            //                     group[i][1].process(null, false, this);
+            //                 }
+            //             }
+            //         }
+            //     } 
+            // }
+            
+            //if its an action or effect
+            if (this.Action !== null || this.Effect !== null) {
+                this.interaction.action(parent || this, player);
+            } else if (parent) {
+                if (parent.Action != null || parent.Effect !== null) {
+                    this.interaction.action(parent, player);
+                }
+            }
+            //if it has a transition
+            if (target && this.Transition !== null && this.Transition.key !== null) {
+                let tiles = target.getVisibleTiles(this.interaction.scene);
+                if (tiles.length != 0) {
+                    this.interaction.runTransition(this.Transition.key,[tiles, this]);
+                }
+            }
+            // if (this.Implementation !== null) {
+            // }
+        }
     }
-    beforeBlock(player, zone) {
-        console.log('blocked');
-        return true;
+    //When a zone's behaviour has changed update the things around it
+    adjustWorld() { 
+        let around = this.scene.physics.overlapRect(this.x, this.y - 20, this.width, this.y + 20);
+        for (let i = 0; i < around.length; i++){
+            if (around[i].gameObject.constructor.name === 'Box') {
+                around[i].gameObject.activate();
+            }
+        }
+        console.log('adjust world', around);
     }
     /**
-     * Get the tiles from the switch layer
+     * Get the tiles from the InteractionTiles layer
      * @param {LevelLoaderScene} scene The scene to use
+     * @param {bool} includeSwitches Include the Enum.isSwitch tiles
      */
-    getVisibleTiles(scene) {
+    getVisibleTiles(scene, includeSwitches, tileLayer) {
         //TODO: look for offset tiles (conveyor)
-        return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => { return true; }, scene.cameras.main, 'Switches');
+        if (includeSwitches) {
+            return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => { return true; }, scene.cameras.main, tileLayer || 'InteractionTiles');
+        } else {
+            return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => { return x => !this.scene.switchIds.contains(t.index) }, scene.cameras.main, tileLayer || 'InteractionTiles');
+        }
+    }
+}
+/** Converts the Tiled property to its value and properties (if supplied) */
+class InteractionParams{
+    key = null;
+    params = {}
+    constructor(value) { 
+        this.splitMapProperty(value);
+    }
+    has(name){
+        if(this.params === null) return false;
+        return this.params.hasOwnProperty(name);
     }
     splitMapProperty(value) {
-        if (value.endsWith('}')) {
+        //if the property has a brace, extract json
+        if (!value.endsWith('}')) {
+            this.key = value;
+            if (this.key === '') this.key = null;
+        }else{
             //contains json properties
             let firstBrace = value.indexOf('{');
             let s = value.substring(firstBrace);
-            let json = JSON.parse(s);
-            let key = value.substring(0, firstBrace);
-            return { key: key, params: json };
+            this.params = JSON.parse(s);
+            value = value.substring(0, firstBrace);
+
+            if (value === '') value = null;
+            this.key = value;
         }
-        return { key: value };
     }
 }
