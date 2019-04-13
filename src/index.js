@@ -10,7 +10,7 @@ class Game extends Phaser.Game {
     'Example', 'L1'
   ];
   levelIndex = 0;
-  
+
   constructor() {
     super(config);
 
@@ -24,16 +24,6 @@ class Game extends Phaser.Game {
     //this.scene.add('UI', UIScene);
     this.scene.start('Boot');
   }
-  preload()
-  {
-    //this.load.plugin('DialogModalPlugin', './dialog_plugin.js');
-    //this.sys.install('DialogModalPlugin');
-    //console.log(this.sys.dialogModal);
-  }
-  create() {
-
-  
-}
   /**
    * Draws Touching, Blocked, CheckCollsion and origin on a sprite/sprite[]
    * @param {Phaser.GameObjects.Sprite} a Sprite or Sprite Array to draw debug on
@@ -119,6 +109,14 @@ class Game extends Phaser.Game {
       this.DebugG.fillStyle(0xFF0000);
       this.DebugG.fillCircle(b.left + (b.width * a.originX), b.top + (b.height * a.originY), 4);
     }
+  }
+  cartoonText(txt) {
+    txt.setShadow(3, 3, '#000000', 6, true, false)
+      .setStroke('#1493F5', 6);
+  }
+  shadowText(txt) {
+    txt.setShadow(3, 3, '#000000', 6, true, false)
+      .setStroke('#000000', 2);
   }
 }
 
