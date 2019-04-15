@@ -16,7 +16,7 @@ export default class Flit extends Phaser.Physics.Arcade.Sprite {
     this.speed = 300;
     this.IsSlow = false;
     this.IsFast = false;
-    this.health = 75;
+    this.health = 50;
     this.lastInjure = 0;
     this.collected = 0;
     this.name = 'flit';

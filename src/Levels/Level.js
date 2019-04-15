@@ -12,8 +12,6 @@ import Dialog from '../Scenes/Dialog.js';
 export default class Level extends Phaser.Scene {
     /** The zones created from the maps interaction layer */
     zones;
-    flies = 0;
-    shrooms = 0;
     fliesCollected = 0;
     shroomsCollected = 0;
     mapIds;
@@ -25,16 +23,20 @@ export default class Level extends Phaser.Scene {
     debug = false;
     mapProperties;
     loader;
-    mapName;
 
-    constructor(handle, mapName) {
+    constructor(handle) {
         super(handle);
-        this.mapName = mapName;
+    }
+    reset() {
+        this.totalShrooms = 0;
+        this.totalFlies = 0;
+        this.fliesCollected = 0;
+        this.shroomsCollected = 0;
     }
     //NB: Call from preload
     preload() {
-        this.load.tilemapTiledJSON(this.mapName, `assets/Levels/${this.mapName}.json`);
-        this.map = this.make.tilemap({ key: this.mapName });
+        this.load.tilemapTiledJSON(this.registry.get('currentLevel'), `assets/Levels/${this.registry.get('currentLevel')}.json`);
+        this.map = this.make.tilemap({ key: this.registry.get('currentLevel') });
         this.mapProperties = this.map.properties;
         //this.map = this.map;
         if (this.map.properties["debug"]) this.debug = this.map.properties["debug"];
@@ -59,33 +61,47 @@ export default class Level extends Phaser.Scene {
                 }
             });
         }
-    }
-    create() { 
-        this.cameras.main.setBackgroundColor(0x10ceff);
-        this.buildLevel();
-        this.scene.add('HUD', HUD, true, { x: 400, y: 300 });
         //Level complete so display summary
-        this.events.on('levelcomplete', function () { 
-            let d = new Dialog(this, 400, 300, 'Level Complete', 'Next');
+        this.events.on('levelcomplete', function () {
+            let d = new Dialog(this, 400, 200, 'Level Complete', 'Next');
             d.depth = 1000;
             this.add.existing(d);
             //when closed finish level
             this.events.on('dialogclosed', function () {
                 console.log('closed');
                 this.scene.get('LevelLoader').levelFinished();
-            },this);
+            }, this);
         }, this);
-        //Cjaracter died so restart
+        //Character died so restart
         this.events.on('died', function (player) {
-            this.scene.remove('HUD');
-            this.scene.restart(); 
-        },this);
+            this.scene.pause('HUD');
+            this.scene.restart();
+        }, this);
+        this.events.once('shutdown', (a, b) => {
+            console.log('shutdown', a, b);
+            this.events.off('levelcomplete');
+            this.events.off('died');
+            this.events.off('gameobjectdown');
+        }, this);
+    }
+    create() { 
+        console.log('Level create');
+        this.cameras.main.setBackgroundColor(0x10ceff);
+        this.buildLevel();
+        if(!this.HUD){
+            this.HUD = this.scene.add('HUD', HUD, true, { x: 400, y: 300 });
+        } else {
+            this.scene.resume('HUD');
+            this.events.emit('updateHUD', this.game.Bob);
+            this.events.emit('updateHUD', this.game.Flit);
+        }
     }
     /**
      * Crete the maps, player and set up collisions
      * @param {PhaserScene} scene The scene to populate
      */
     buildLevel() {
+        this.reset();
         let sets = [];
         this.map.tilesets.forEach((b) => {
             //console.log(`Added tilesetImage ${b.name}`);
