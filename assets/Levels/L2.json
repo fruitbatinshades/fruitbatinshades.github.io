@@ -183,7 +183,7 @@
                  "name":"Box",
                  "properties":
                     {
-                     "Counter":4
+                     "Counter":3
                     },
                  "propertytypes":
                     {
@@ -219,6 +219,18 @@
                  "width":64,
                  "x":2240,
                  "y":1152
+                }, 
+                {
+                 "gid":30,
+                 "height":64,
+                 "id":118,
+                 "name":"Box",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":64,
+                 "x":1536,
+                 "y":384
                 }],
          "opacity":1,
          "properties":
@@ -849,7 +861,7 @@
          "y":0
         }],
  "nextlayerid":11,
- "nextobjectid":118,
+ "nextobjectid":119,
  "orientation":"orthogonal",
  "properties":
     {
