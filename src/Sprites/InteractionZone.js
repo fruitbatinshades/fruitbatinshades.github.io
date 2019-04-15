@@ -4,6 +4,10 @@ import Enums from '../Levels/Tilemaps.js';
  * Class populated from the tilemap Interaction Layer rectangles
  */
 export default class InteractionZone extends Phaser.GameObjects.Zone {
+    //Unique name of the zone
+    name = null;
+    //Ref to the tile
+    TileObj = null;
     //Key to group multiple targets
     GroupKey = null;
     //Single target ID
@@ -14,18 +18,26 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     Effect = null;
     //The visual effect to use (toggleVisibility, fadeAndDisable)
     Transition = null;
-    //Unique name of the zone
-    name = null;
-    //Ref to the tile
-    TileObj = null;
+    //Class to use for this tile
+    Implementation = null;
+    //What player does it affect
     Affect = null;
+    //Whether it blocks (physics)
     Blocks = null;
-    Related;
-    Implementation;
+
     lookup;
     tileType;
     isActive = true;
-    switchOn = false;
+    _switchOn = false;
+
+    get switchOn(){
+        return this._switchOn;
+    }
+    set switchOn(value) {
+        this._switchOn = value;
+        //chain related switches
+        
+    }
 
     constructor(scene, tileObj, interaction, debug) {
         super(scene, tileObj.x + 2, tileObj.y + 2, tileObj.width - 4, tileObj.height - 4);
@@ -42,10 +54,22 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
         this.name = tileObj.name;
         //if ZoneHeight is provided adjust the zone, used to make the zone smaller than the tile (switches, injure)
         if (this.properties && this.properties.ZoneHeight) {
-            this.body.reset(this.body.x, this.body.bottom - parseInt(this.properties.ZoneHeight));
+            if (this.properties.ZoneHeightAt) {
+                switch (this.properties.ZoneHeightAt)
+                {
+                    case 'T':
+                        this.body.reset(this.body.x, this.body.top);
+                        break;
+                    default:
+                        this.body.reset(this.body.x, this.body.bottom - parseInt(this.properties.ZoneHeight));
+                        break;
+                }
+            } else {
+                this.body.reset(this.body.x, this.body.bottom - parseInt(this.properties.ZoneHeight));
+            }
             this.body.height = parseInt(this.properties.ZoneHeight);
         }
-        //hide tiles if the zone not visible
+        //hide tiles if the zone not visible in Tiled
         if (!tileObj.visible) {
             this.getVisibleTiles(scene).forEach(x => x.visible = false);
             this.active = false;
@@ -56,6 +80,7 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
         let tile = scene.map.getTileAt(tileObj.x / 64, tileObj.y / 64, false, 'InteractionTiles');
         if(tile !== null) this.tileType = this.scene.switchIds.tileType(tile.index);
         
+        //The properties are intially null and only set up if the KV pair is in the properties
         if (tileObj.properties) {
             if (typeof tileObj.properties.GroupKey !== 'undefined')
                 this.GroupKey = new InteractionParams(tileObj.properties.GroupKey);
@@ -75,7 +100,6 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
                 this.Blocks = new InteractionParams(tileObj.properties.Blocks);
             }
         }
-        
         //TODO: strip this out on build ???
         //Add tooltips on debug to show the properties from Tiled
         if (debug) {
@@ -113,6 +137,15 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
             if (this.tileType && this.tileType.isSwitch) {
                 let switchTile = this.scene.map.getTileAt(this.tileObj.x / 64, this.tileObj.y / 64, false, 'InteractionTiles')
                 switchTile.index = this.interaction.scene.switchIds.switchState(switchTile.index, this);
+                //TODO: Add arrow that points to target
+                //arrow.rotation = game.physics.arcade.angleBetween(arrow, target);
+
+                // if (this.GroupKey !== null && this.GroupKey.key !== null && this.GroupKey.key !== '') {
+                //     let related = this.interaction.getGroupSwitches(this.GroupKey.key, this.name);
+                //     for (let i = 0; i < related.length; i++){
+                //         related[i][1].process(null, true);
+                //     }
+                // }
             }
             //get the target zone
             let target;
@@ -156,9 +189,13 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     getVisibleTiles(scene, includeSwitches, tileLayer) {
         //TODO: look for offset tiles (conveyor)
         if (includeSwitches) {
-            return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => { return true; }, scene.cameras.main, tileLayer || 'InteractionTiles');
+            return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => {
+                return true;
+            }, scene.cameras.main, tileLayer || 'InteractionTiles');
         } else {
-            return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => { return x => !this.scene.switchIds.contains(t.index) }, scene.cameras.main, tileLayer || 'InteractionTiles');
+            return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => {
+                return x => !this.scene.switchIds.contains(t.index)
+            }, scene.cameras.main, tileLayer || 'InteractionTiles');
         }
     }
 }

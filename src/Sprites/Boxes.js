@@ -63,6 +63,7 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
         //bind when a box is picked up
         this.scene.events.on('pickup_box', this.onPickupBox, this);
         this.scene.events.on('drop_box', this.onDropBox, this);
+        this.scene.events.on('boxdestruct', this.onBoxDestruct, this);
 
         this.addCollisions();
     }
@@ -89,9 +90,10 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
             box.body.immovable = true;
             box.body.allowGravity = false;
             box.body.stop();
-            // box.lastContact = tile;
+            box.body.y--;
             box.status = Boxes.State.Tile;
             box.lastContact = tile;
+            box.hits--;
             this.scene.events.emit('boxTileCollide', box, tile);
         }
     }
@@ -107,7 +109,11 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
         // box.body.moves = true;
         // box.body.setGravityY(0);
     }
-
+    onBoxDestruct(box) {
+        console.log('box destruct', box);
+        
+        box.destroy();
+    }
     //When a box is taken by a character
     onPickupBox(box, player) {
         if (!box.underneath) { //only pick up box if there is nothing underneath it
@@ -141,8 +147,10 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
      */
     playerCollide(player, box) {
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
-            this.deActivate(box);
-            player.overBox(box, player);
+            if (box.Affects === null || player.is(box.Affects)) {
+                this.deActivate(box);
+                player.overBox(box, player);
+            }
         }
     }
 

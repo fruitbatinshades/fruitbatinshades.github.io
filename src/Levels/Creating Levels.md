@@ -44,7 +44,8 @@ You just need to add a tile and set the `Name:Box` and the type to
 | Property | Value | Description |
 |---|---|---|
 | `Name` | `Box` | A tile with a name of `Box` will be converted to a box object |
-| `Type` | blank, `Flit` or `Bob` | if this is not blank it will create a box that only Flit/Bob can lift |
+| `Affect` | `Flit` or `Bob` | if this is not blank it will create a box that only Flit/Bob can lift |
+| `Counter` | integer | Number of times the box can be dropped before it disappears |
 
 #### InteractionTiles (Tile Layer)
 InteractionTiles are the graphical representation of effects and actions. They need to come from the `Components` tileset as we map the tiles to actions in the code. 
@@ -71,6 +72,8 @@ These are the properties you enter in the tiled editor
 | Action | The action for the zone or group |  |
 | Effect | The effect on the player | |
 | Transition | The visual effect on the zone or group | |
+| ZoneHeight | Used to adjust the zone height (spikes, bridges etc.) | The height is shrunk to the bottom unless `ZoneHeightAt` is supplied |
+| ZoneHeightAt | The visual effect on the zone or group | If set to `T` the zone is shrunk towards the top |
 
 ##### Values
 These are the values for the property in the tiled editor

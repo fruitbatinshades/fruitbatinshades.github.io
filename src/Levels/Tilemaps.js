@@ -22,6 +22,7 @@ export default class Enums {
             StopLeftL: 10,
             StopLeftM: 11,
             StopLeftR: 12,
+            Arrow: 16,
             PlantPot1: 25,
             PlantPot2: 26,
             Stone1: 27,
@@ -112,7 +113,7 @@ export default class Enums {
         return this.Stops.indexOf(index) !== -1;
     }
     /** 
-     * Get the next state for the switch or light
+     * Get the next state for the switch or light and update the zone switch status
      */
     switchState(index, zone) {
         //handle switches

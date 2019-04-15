@@ -84,12 +84,16 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
         if (name === null) return null;
         return Object.entries(Object.filter(this.lookup, (z) => z.hasOwnProperty('GroupKey') && z.GroupKey !== null && z.GroupKey.key && z.GroupKey.key === name && z.name != exclude));
     }
+    getGroupSwitches(name,exclude) {
+        if (name === null) return null;
+        return Object.entries(Object.filter(this.lookup, (z) => z.hasOwnProperty('GroupKey') && z.GroupKey !== null && z.GroupKey.key && z.GroupKey.key === name && z.tileType.isSwitch && z.name != exclude));
+    }
     blocks(player, zone) {
         //player is blocked
     }
     preBlock(player, zone) {
         //Check if specific player set or block either
-        if (zone.Target === null || zone.Target.key === null || player.is(zone.Target.key)) {
+        if (zone.Affect === null || zone.Affect.key === null || player.is(zone.Affect.key)) {
             return true;
         }
         return false;
@@ -104,9 +108,12 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
         if (player.is(this.scene.registry.list.ActivePlayer.name)) {
             let t = this.lookup[zone.name];
             //If its an effect require space key
-            if (!t.Effect || t.Effect === null) {
-                if (this.scene.input.keyboard.checkDown(this.spaceKey, 250)) {
-                    zone.process(player, true);
+            if (t.Effect === null) {
+                if (this.scene.input.keyboard.checkDown(this.spaceKey, 500)) {
+                    //if affect is supplied make sure its our player
+                    if (t.Affect === null || (t.Affect !== null && t.Affect.key === player.name)) {
+                        zone.process(player, true);
+                    }
                 }
             } else {
                 //else fire constantly
@@ -196,7 +203,7 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
      */
     kill(triggerZone, player) {
         if (player !== null) {
-            if (triggerZone.Target.key === null || player.is(triggerZone.Target.key)) {
+            if (triggerZone.Affect === null || triggerZone.Affect.key === null || player.is(triggerZone.Affect.key)) {
                 player.kill();
             }
         }
@@ -239,7 +246,7 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
     injure(triggerZone, player) {
         if (player !== null && triggerZone.Affect) {
             if (triggerZone.Affect.key === null || player.is(triggerZone.Affect.key)) {
-                player.injure(triggerZone.Effect.params.health || 5);
+                player.injure(triggerZone.Effect.params.health || 10);
             }
         }
     }
@@ -270,13 +277,13 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
                     targetZone.adjustWorld();
                 }
             } 
-            else if (triggerZone.GroupKey){
+            else if (triggerZone.GroupKey != null){
                 //no target so check group
                 let group = this.getGroup(triggerZone.GroupKey.key, triggerZone.name)
                 if (group.length !== 0) {
                     for (let i = 0; i < group.length; i++) {
                         let g = group[i][1];
-                        if (g.tileType.isLight) {
+                        if (g.tileType && g.tileType.isLight) {
                             let switchTile = this.scene.map.getTileAt(g.tileObj.x / 64, g.tileObj.y / 64, false, 'InteractionTiles')
                             switchTile.index = this.scene.switchIds.switchState(switchTile.index, triggerZone);
                         }else{
