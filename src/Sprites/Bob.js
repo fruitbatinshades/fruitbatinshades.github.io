@@ -1,10 +1,4 @@
 /// <reference path="../../defs/phaser.d.ts" />
-//TODO
-//Impliment jump height of one block
-//Implement strength of three
-//Implement lift
-//Implement push
-
 export default class Bob extends Phaser.Physics.Arcade.Sprite {
   get activeSpeed() {
     if (this.isSlow) return this.speed / 2;
@@ -40,7 +34,7 @@ export default class Bob extends Phaser.Physics.Arcade.Sprite {
     this.scene.add.existing(this);
 
     // create the player sprite    
-    this.setBounce(0.2); // our player will bounce from items
+    //this.setBounce(0.2); // our player will bounce from items
     this.setCollideWorldBounds(true); // don't go out of the map        
     this.setGravityY(800); //set gravity to control jump height to 1 block
     this.splat = this.scene.add.image(0, 0, 'splat');
@@ -94,7 +88,7 @@ export default class Bob extends Phaser.Physics.Arcade.Sprite {
       this.health -= amount;
       this.scene.events.emit('loseHealth', this);
       this.scene.events.emit('updateHUD', this);
-      this.scene.sound.playAudioSprite('sfx', 'Squeek');
+      this.scene.sound.playAudioSprite('sfx', 'squeak');
       //tint for a brief period
       if (!this.hitDelay) {
         this.hitDelay = true;
@@ -172,6 +166,7 @@ export default class Bob extends Phaser.Physics.Arcade.Sprite {
     if (cursors.up.isDown) {
       //on floor, just jump
       if (this.body.onFloor()) {
+        this.scene.sound.playAudioSprite('sfx', 'jump', {volume:.1});
         this.body.setVelocityY(-500);
       }
       //check if we are on boxes
@@ -180,7 +175,8 @@ export default class Bob extends Phaser.Physics.Arcade.Sprite {
         let around = this.scene.physics.overlapRect(this.body.left, this.body.bottom + 2, this.body.width - 3,  3);
         for (let i = 0; i < around.length; i++){
           let go = around[i].gameObject;
-          if (go.constructor.name === 'Box' || (go.constructor.name === 'InteractionZone' && go.Blocks != null )) {
+          if (go.constructor.name === 'Box' || (go.constructor.name === 'InteractionZone' && go.Blocks != null)) {
+            this.scene.sound.playAudioSprite('sfx', 'jump', {volume:.1});
             this.body.setVelocityY(-500);
             break;
           }

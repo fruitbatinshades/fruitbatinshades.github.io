@@ -1,6 +1,7 @@
 /// <reference path="../../defs/phaser.d.ts" />
 import Settings from '../settings.js';
 import Box from './box.js';
+//import utils from '../Utils/Debug.js';
 
 export default class Boxes extends Phaser.Physics.Arcade.Group {
     static State = {
@@ -10,12 +11,13 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
         Tile: 3
     }
     static tileWidth = 64;
+    debug = true;
+
     constructor(scene, children, spriteArray) {
         super(scene, children);
 
         //createCallbackHandler errors if this is not set which implies the inheritence is wrong somehow :|
         this.world = scene.physics.world;
-        this._Settings = new Settings(); //shared settings objects
         this.scene = scene;
 
         // add boxes to our group
@@ -25,30 +27,17 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
             this.add(b, true);
             this.scene.physics.world.enable(b);
             box.destroy(); //destroy original tile
-            //b.x = Math.round(b.x / Boxes.tileWidth) * Boxes.tileWidth;
-
         }, this);
 
         this.spaceKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-
+       
         this.init();
     }
-    // preUpdate(a, b) { 
-    //     this.children.each((b) => {
-    //         b.note.x = b.x + 10;
-    //         b.note.y = b.y + 10;
-
-    //         let n = b.name;
-    //         if (b.onTopOf) n += `\nA${b.onTopOf.name}`;
-    //         if (b.underneath) n += `\nB${b.underneath.name}`;
-
-    //         b.note.setText(n);
-
-    //         // if (box.player) {
-
-    //         // }
-    //     });
-    // }
+    preUpdate(a, b) { 
+        if (this.debug) { 
+            this.scene.game.drawCollision(this.scene, this.children.entries);
+        }
+    }
     init() {
         let i = 0;
         //NOTE: This is interesting, when you add a group to a scene it wipes out the child properties
@@ -75,10 +64,8 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
         this.scene.physics.add.collider(this.scene.game.Bob, this, this.playerCollide, null, this);
         this.scene.physics.add.collider(this.scene.game.Flit, this, this.playerCollide, null, this);
     }
-    //fix the box in place, turn of physics
+    //fix the box in place, turn off physics
     tileCollide(box, tile) {
-        //if (a.boxstatus === Boxes.State.None) {
-        
         //TODO: Objects are passed back to front from zone/box collider, This is probably because I'm using unreleased 3.17 but check after release
         if (box.constructor.name == 'InteractionZone') {
             let tmp = box;
@@ -86,11 +73,8 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
             box = tmp2;
             tile = tmp;
         }
-        if (box.lastContact !== tile) {
-            box.body.immovable = true;
-            box.body.allowGravity = false;
-            box.body.stop();
-            box.body.y--;
+        if (tile !== null && box.lastContact !== tile) { // && !box.isRock
+            this.deActivate(box);
             box.status = Boxes.State.Tile;
             box.lastContact = tile;
             box.hits--;
@@ -99,32 +83,43 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
     }
     activate(box) {
         box.body.immovable = false;
-        //box.body.enable = true;
         box.body.moves = true;
         box.body.setGravityY(1);
     }
     deActivate(box) {
-        // box.body.immovable = true;
-        // //box.body.enable = false;
-        // box.body.moves = true;
-        // box.body.setGravityY(0);
+        box.body.immovable = true;
+        box.body.allowGravity = false;
+        box.body.setGravityY(0);
+        box.setVelocity(0, 0);
+        box.body.stop();
+       // box.body.y--;
     }
     onBoxDestruct(box) {
         console.log('box destruct', box);
-        
+        this.scene.sound.playAudioSprite('sfx', 'break');
         box.destroy();
     }
+
     //When a box is taken by a character
+    /**
+     * 
+     * @param {Phaser.GameObjects.Sprite} box 
+     * @param {Phaser.GameObjects.Sprite} player
+     */
     onPickupBox(box, player) {
-        if (!box.underneath) { //only pick up box if there is nothing underneath it
+        if (!box.underneath && !box.isRock) { //only pick up box if there is nothing underneath it
             box.reset();
             player.carrying = box;
             box.player = player;
             box.body.enable = false;
             box.body.allowGravity = false;
+            box.body.onOverlap = true;
             box.lastContact = null;
-            if(this.debug) console.log('event pickup_box', box);
+            if (this.debug) console.log('event pickup_box', box);
         }
+    }
+    tileOverlap(a, b, c){
+        console.log(a, b, c);
     }
     //when a box is dropped by a character
     onDropBox(box, player) {
@@ -146,12 +141,24 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
      * @param {Box} box The box they are colliding with
      */
     playerCollide(player, box) {
-        if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+        if (!box.isRock && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
             if (box.Affects === null || player.is(box.Affects)) {
                 this.deActivate(box);
                 this.scene.ActivePlayer.overBox(box);
             }
         }
+        //if it's bob and a rock move it
+        if (box.isRock && player.is('bob')) {
+            box.body.allowGravity = true;
+            box.body.setDrag(5000, 0);//.setMass(5000);
+            let v = 0;
+            if (box.body.touching.right) v = -player.speed;
+            if (box.body.touching.left) v = player.speed;
+            box.body.setVelocityX(v);
+        }
+    }
+    stopVelocity(box) {
+        box.body.setVelocityX(0);
     }
 
     /**
@@ -160,32 +167,40 @@ export default class Boxes extends Phaser.Physics.Arcade.Group {
      * @param {Box} b Second Box
      */
     boxCollide(a, b) {
-        a.setVelocityX(0);
-        b.setVelocityX(0);
-        //workout uppermost box
-        let top = a.body.top < b.body.top ? a : b;
-        let bottom = top === a ? b : a;
+        if (!a.isRock && !b.isRock) {
+            a.setVelocityX(0);
+            b.setVelocityX(0);
+            //workout uppermost box
+            let top = a.body.top < b.body.top ? a : b;
+            let bottom = top === a ? b : a;
 
-        bottom.underneath = top;
-        top.onTopOf = bottom;
-
-        top.body.stop();
-        bottom.body.stop();
-
-        //bottom.tint = 0x00FF00;
-        bottom.body.immovable = true;
-        bottom.body.moves = false;
-        bottom.body.enable = true;
-        bottom.body.allowGravity = false;
-
-        //top.tint = 0xFF0000;
-        top.body.immovable = true;
-        top.body.moves = false;
-        top.body.enable = true;
-        top.body.allowGravity = false;
+            bottom.underneath = top;
+            top.onTopOf = bottom;
         
-        //force gap else it is irregular
-        top.y = (bottom.body.top - top.body.height) - 1;
-        if (this.debug) console.log('box colliding');
+            //subtract hits
+            if (top.lastContact !== bottom) {
+                top.hits--;
+            }
+            top.lastContact = bottom;
+
+            top.body.stop();
+            bottom.body.stop();
+
+            //bottom.tint = 0x00FF00;
+            bottom.body.immovable = true;
+            bottom.body.moves = false;
+            bottom.body.enable = true;
+            bottom.body.allowGravity = false;
+
+            //top.tint = 0xFF0000;
+            top.body.immovable = true;
+            top.body.moves = false;
+            top.body.enable = true;
+            top.body.allowGravity = false;
+        
+            //force gap else it is irregular
+            top.y = (bottom.body.top - top.body.height) - 1;
+            if (this.debug) console.log('box colliding');
+        }
     }
 }

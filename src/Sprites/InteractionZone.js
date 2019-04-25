@@ -24,7 +24,8 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     Affect = null;
     //Whether it blocks (physics)
     Blocks = null;
-
+    //Whether the target has been shown to the camera so it only happens once
+    _groupShown = false;
     tileType;
     isActive = true;
     _switchOn = false;
@@ -39,7 +40,7 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     }
 
     constructor(scene, tileObj, interaction, debug) {
-        super(scene, tileObj.x + 2, tileObj.y + 2, tileObj.width - 4, tileObj.height - 4);
+        super(scene, tileObj.x, tileObj.y , tileObj.width , tileObj.height );
         
         if (tileObj.name === null || tileObj.name === '')
             throw `Zone at ${tileObj} does not have a name`;
@@ -130,39 +131,38 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     process(player, iterateGroup, parent) {
          if (this.isActive) {
         //     this.State = !this.State;
-            this.body.debugBodyColor = !this.State ? 0xFF0000 : 0x00FF00;
+             this.body.debugBodyColor = !this.State ? 0xFF0000 : 0x00FF00;
+             
+             //get the target zone
+             let target;
+             if (this.Target !== null && this.Target.key !== null) {
+                 target = this.interaction.getByKey(this.Target.key);
+             }
 
             //If its a switch, change its state
             if (this.tileType && this.tileType.isSwitch) {
                 let switchTile = this.scene.map.getTileAt(this.tileObj.x / 64, this.tileObj.y / 64, false, 'InteractionTiles')
                 switchTile.index = this.interaction.scene.switchIds.switchState(switchTile.index, this);
-                //TODO: Add arrow that points to target
-                //arrow.rotation = game.physics.arcade.angleBetween(arrow, target);
-
+                this.scene.sound.playAudioSprite('sfx', 'switch');
+                let panRect;
+                //pan if the target or group is off screen
+                if (target && !this._groupShown) {
+                    panRect = this.interaction.getTargetRectangle(target.name);
+                }
                 if (this.GroupKey !== null && this.GroupKey.key !== null && this.GroupKey.key !== '') {
-                    //TEST: camera pan to group
-                    let rect = this.interaction.getGroupPosition(this.GroupKey.key, this.name);
-                    
-                    // //TODO: Nested pan doesn't run second pan callback
-                    // this.scene.cameras.main.stopFollow();
-                    // this.scene.cameras.main.pan(rect.x + rect.width / 2, rect.y + rect.height / 2, 500, 'Sine.easeInOut', false, (cam, complete, x, y) => {
-                    //     if (complete === 1) {
-                    //         this.scene.cameras.main.pan(this.scene.ActivePlayer.x, this.scene.ActivePlayer.y, 500, 'Sine.easeInOut', true, (acam, acomplete, x, y) => {
-                    //             alert('pan back');
-                    //             if (acomplete === 1) {
-                    //                 this.scene.cameras.main.startFollow(this.scene.ActivePlayer, true, .1, .1);
-                    //                 this.scene.game._ChangingPlayer = false;
-                    //             }
-                    //         });
-                    //     }
-                    // });
-                 }
+                    if (!this._groupShown) {
+                        //Pan the camera to the target if it's off screen
+                        panRect = this.interaction.getGroupRectangle(this.GroupKey.key, this.name);
+                    }
+                }
+                if (panRect) {
+                    if (!Phaser.Geom.Rectangle.ContainsRect(this.scene.cameras.main.worldView, panRect)) {
+                        this.scene.game.panAndReturn(this.scene, panRect);
+                    }
+                    this._groupShown = true;
+                }
             }
-            //get the target zone
-            let target;
-            if (this.Target !== null && this.Target.key !== null) {
-                target = this.interaction.getByKey(this.Target.key);
-            }
+             
             //if its an action or effect
             if (this.Action !== null || this.Effect !== null) {
                 this.interaction.action(parent || this, player);
@@ -184,7 +184,7 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
     }
     //When a zone's behaviour has changed update the things around it
     adjustWorld() { 
-        let around = this.scene.physics.overlapRect(this.x, this.y - 4, this.width, this.y + 4);
+        let around = this.scene.physics.overlapRect(this.x, this.y - 2, this.width, this.height + 2);
         for (let i = 0; i < around.length; i++){
             if (around[i].gameObject.constructor.name === 'Box') {
                 around[i].gameObject.activate();
@@ -198,7 +198,6 @@ export default class InteractionZone extends Phaser.GameObjects.Zone {
      * @param {bool} includeSwitches Include the Enum.isSwitch tiles
      */
     getVisibleTiles(scene, includeSwitches, tileLayer) {
-        //TODO: look for offset tiles (conveyor)
         if (includeSwitches) {
             return scene.map.getTilesWithinWorldXY(this.x, this.y, this.width, this.height, (t) => {
                 return true;

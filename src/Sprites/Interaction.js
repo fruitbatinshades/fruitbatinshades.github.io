@@ -109,7 +109,7 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
      * @param {string} exclude The zone name to exclude
      * @returns {object} rectangle
      */
-    getGroupPosition(name, exclude) {
+    getGroupRectangle(name, exclude) {
         let group = this.getGroup(name, exclude);
         if (group == null) return null;
         let X = [], Y = [];
@@ -120,13 +120,12 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
             Y.push(c.y);
             Y.push(c.y + c.height);
         }
-        let rect = {
-            x: Math.min(...X),
-            y: Math.min(...Y),
-            width: Math.max(...X) - Math.min(...X),
-            height: Math.max(...Y) - Math.min(...Y)
-        }
-        return rect;
+        return new Phaser.Geom.Rectangle(Math.min(...X), Math.min(...Y), Math.max(...X) - Math.min(...X), Math.max(...Y) - Math.min(...Y));
+    }
+    getTargetRectangle(name) {
+        let target = this.getByKey(name);
+        if (target) return new Phaser.Geom.Rectangle(target.x, target.y, target.width, target.height);
+        return;
     }
     blocks(player, zone) {
         //player is blocked
@@ -154,7 +153,7 @@ export default class Interaction extends Phaser.Physics.Arcade.Group {
             let t = this.lookup[zone.name];
             //If its an effect require space key
             if (t.Effect === null) {
-                if (this.scene.input.keyboard.checkDown(this.spaceKey, 500)) {
+                if (this.scene.input.keyboard.checkDown(this.spaceKey, 1000)) {
                     //if affect is supplied make sure its our player
                     if (t.Affect === null || (t.Affect !== null && t.Affect.key === player.name)) {
                         zone.process(player, true);

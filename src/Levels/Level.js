@@ -6,6 +6,7 @@ import Enums from './Tilemaps.js';
 import Interaction from '../Sprites/Interaction.js';
 import HUD from '../Scenes/HUD.js';
 import Dialog from '../Scenes/Dialog.js';
+import Tip from '../Utils/Tips.js';
 /**
  * Class that hold the level specific data and operations
  */
@@ -105,7 +106,7 @@ export default class Level extends Phaser.Scene {
         let sets = [];
         this.map.tilesets.forEach((b) => {
             //console.log(`Added tilesetImage ${b.name}`);
-            this.map.addTilesetImage(b.name, b.name, b.tileWidth, b.tileHeight);
+            this.map.addTilesetImage(b.name, b.name, b.tileWidth, b.tileHeight,1,2);
             sets.push(b.name);
         });
         
@@ -202,7 +203,7 @@ export default class Level extends Phaser.Scene {
         //when a box hits a tile
         this.events.on('boxTileCollide', (box, tile) => { 
             if (tile.constructor.name === 'InteractionZone') {
-                if (tile.tileType && tile.tileType.isBlockActivated) {
+                if (tile.tileType && tile.tileType.isBlockActivated && !box.isRock) {
                     tile.process();
                 }
             }
@@ -301,9 +302,9 @@ export default class Level extends Phaser.Scene {
         this.game._ChangingPlayer = true;
         //pan the camera 
         this.cameras.main.stopFollow();
-        this.cameras.main.pan(this.ActivePlayer.x, this.ActivePlayer.y, 500, 'Sine.easeInOut', true, (cam, complete, x, y) => {
+        this.cameras.main.pan(this.ActivePlayer.x, this.ActivePlayer.y, 500, 'Sine.easeInOut', false, (cam, complete, x, y) => {
             if (complete === 1) {
-                this.cameras.main.startFollow(this.ActivePlayer, true, .1, .1);
+                this.cameras.main.startFollow(this.ActivePlayer, false, .1, .1);
                 this.game._ChangingPlayer = false;
             }
         });

@@ -66,7 +66,7 @@ export default class Flit extends Phaser.Physics.Arcade.Sprite {
       this.health -= amount;
       this.scene.events.emit('loseHealth', this);
       this.scene.events.emit('updateHUD', this);
-      this.scene.sound.playAudioSprite('sfx', 'Squeek');
+      this.scene.sound.playAudioSprite('sfx', 'squeak');
       //tint for a brief period
       if (!this.hitDelay) {
         this.hitDelay = true;
@@ -84,7 +84,6 @@ export default class Flit extends Phaser.Physics.Arcade.Sprite {
     }
   }
   kill() {
-    //TODO:Add death animation
     console.log('Flit died');
     this.splat.x = this.body.center.x;// - this.body.width / 2;
     this.splat.y = this.body.center.y;// - this.body.height /2;
@@ -117,10 +116,6 @@ export default class Flit extends Phaser.Physics.Arcade.Sprite {
   }
   overBox(item, player) {
     if (this.carrying == null) {
-      console.log('before pickup', item.body);
-      //this.carrying = item;
-       //item.body.enable = false;
-       //item.body.checkCollision.none = true;
       this.scene.events.emit('pickup_box', item, this);
     }
   }
@@ -162,14 +157,6 @@ export default class Flit extends Phaser.Physics.Arcade.Sprite {
     this.isSlow = false;
     this.isFast = false;
   }
-
-//   loseHealth () {
-//     this.health--;
-//     this.scene.events.emit('loseHealth', this.health);
-//     if (this.health === 0) {
-//       this.scene.loadNextLevel(true);
-//     }
-//   }
 
 //   enemyCollision (player, enemy) {
 //     if (!this.hitDelay) {
