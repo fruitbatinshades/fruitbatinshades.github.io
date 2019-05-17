@@ -8,7 +8,10 @@ export default {
         default: 'arcade',
         arcade: {
             gravity: {y: 500},
-            debug: true
+            debug: false,
+            overlapBias: 8,
+            tileBias:16,
+            debug: false
         }
     },
     plugins: {

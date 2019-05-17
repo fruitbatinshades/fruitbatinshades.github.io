@@ -317,15 +317,13 @@
                     {
                      "Affect":"",
                      "Effect":"Injure",
-                     "GroupKey":"Group1",
-                     "ZoneHeight":16
+                     "GroupKey":"Group1"
                     },
                  "propertytypes":
                     {
                      "Affect":"string",
                      "Effect":"string",
-                     "GroupKey":"string",
-                     "ZoneHeight":"int"
+                     "GroupKey":"string"
                     },
                  "rotation":0,
                  "type":"ConveyerLeft",
@@ -471,14 +469,12 @@
                  "properties":
                     {
                      "Action":"ShowHide",
-                     "GroupKey":"StoneDropA",
-                     "ZoneHeight":14
+                     "GroupKey":"StoneDropA"
                     },
                  "propertytypes":
                     {
                      "Action":"string",
-                     "GroupKey":"string",
-                     "ZoneHeight":"int"
+                     "GroupKey":"string"
                     },
                  "rotation":0,
                  "type":"",
@@ -857,7 +853,7 @@
  "properties":
     {
      "Backgrounds":"BrickTile.svg|gnome.svg|WallTile.svg|Clouds.svg|Tools.svg|Sun.svg",
-     "debug":true
+     "debug":false
     },
  "propertytypes":
     {
@@ -872,11 +868,11 @@
          "columns":6,
          "firstgid":1,
          "image":"components.png",
-         "imageheight":512,
-         "imagewidth":384,
-         "margin":0,
+         "imageheight":528,
+         "imagewidth":396,
+         "margin":1,
          "name":"components",
-         "spacing":0,
+         "spacing":2,
          "tilecount":48,
          "tileheight":64,
          "tilewidth":64
@@ -885,11 +881,11 @@
          "columns":6,
          "firstgid":49,
          "image":"gs.png",
-         "imageheight":448,
-         "imagewidth":384,
-         "margin":0,
+         "imageheight":462,
+         "imagewidth":396,
+         "margin":1,
          "name":"GS",
-         "spacing":0,
+         "spacing":2,
          "terrains":[
                 {
                  "name":"Ground",
@@ -1046,11 +1042,11 @@
          "columns":16,
          "firstgid":91,
          "image":"veggies.png",
-         "imageheight":1024,
-         "imagewidth":1024,
-         "margin":0,
+         "imageheight":1056,
+         "imagewidth":1056,
+         "margin":1,
          "name":"veggies",
-         "spacing":0,
+         "spacing":2,
          "tilecount":256,
          "tileheight":64,
          "tilewidth":64
@@ -1059,11 +1055,11 @@
          "columns":16,
          "firstgid":347,
          "image":"GardenTilemap.png",
-         "imageheight":1024,
-         "imagewidth":1024,
-         "margin":0,
+         "imageheight":1056,
+         "imagewidth":1056,
+         "margin":1,
          "name":"GardenTilemap",
-         "spacing":0,
+         "spacing":2,
          "tilecount":256,
          "tileheight":64,
          "tilewidth":64

@@ -18,10 +18,9 @@ export default class LevelLoaderScene extends Phaser.Scene {
     preload() {
         this.registry.set('currentLevel', this.game.levels[this.game.levelIndex]);
         //get the name of the scene to start from the querystring if there
-        let l = getQueryStringValue('level');
-        if (l !== '') this.registry.set('currentLevel',l);
+        let l = this.game.urlParams.get('level');
+        if (l !== null) this.registry.set('currentLevel',l);
 
-        let splash = this.add.image(0, 0, 'SplashBackground').setOrigin(0, .15);
         this.progressBar = this.add.graphics();
         this.progressBar.depth = 11;
         this.progressBox = this.add.graphics();
@@ -29,8 +28,15 @@ export default class LevelLoaderScene extends Phaser.Scene {
 
         this.width = this.cameras.main.width;
         this.height = this.cameras.main.height;
-        this.scale = splash.width / this.width;
-        splash.setScale(this.scale, this.scale);
+
+        //add and resize splash to best fit
+        let splash = this.add.image(0, 0, 'SplashBackground');
+        let size = new Phaser.Structs.Size(this.width, this.height);
+        let splashSize = new Phaser.Structs.Size(splash.width, splash.height, Phaser.Structs.Size.ENVELOP, size)
+        splashSize.setSize(size.width, size.height);
+        splash.setDisplaySize(splashSize.width, splashSize.height);
+        splash.x = this.width / 2;
+        splash.y = this.height / 2;
 
         this.left = this.width / 2 - 200;
         this.progressBox.lineStyle(6, 0x333333, 1);
@@ -40,10 +46,10 @@ export default class LevelLoaderScene extends Phaser.Scene {
 
 
         //this.add.image(width / 2, 100, 'Logo');
-        this.PlayButton = this.add.image(this.width / 2, 490, 'buttons', 'roundButton');
+        this.PlayButton = this.add.image(this.width / 2, 490, 'UI', 'roundButton');
         this.PlayButton.alpha = .5;
         this.PlayButton.setInteractive();
-        let p = this.add.image(this.width / 2, 490, 'buttons', 'play');
+        let p = this.add.image(this.width / 2, 490, 'UI', 'play');
         p.setOrigin(.5, .5);
 
         this.loadingText = this.make.text({
@@ -93,7 +99,7 @@ export default class LevelLoaderScene extends Phaser.Scene {
 
         this.load.on('fileprogress', function (file) {
             this.assetText.setText('Loading : ' + file.key);
-            console.log(file.key);
+            //console.log(file.key);
         }, this);
 
         this.load.on('complete', function () {
@@ -117,7 +123,6 @@ export default class LevelLoaderScene extends Phaser.Scene {
         this.load.tilemapTiledJSON(this.registry.get('currentLevel'), `assets/Levels/${this.registry.get('currentLevel')}.json`);
     }
     create() {
-        console.log('create');
         let n = this.make.text({
             x: this.cameras.main.width / 2,
             y: 420,
@@ -133,10 +138,11 @@ export default class LevelLoaderScene extends Phaser.Scene {
     }
     levelFinished() {
         this.scene.pause('HUD');
-        this.scene.pause('Level');
+        //this.scene.pause('Level');
         if (this.game.levels.length > this.game.levelIndex + 1) this.game.levelIndex++;
         this.scene.bringToTop(this);
-        this.scene.restart();
+        this.scene.stop('Level');
+        this.scene.start();
     }
     mapLoaded() {
         this.load.audioSprite('sfx', 'assets/Sound/FlitBob.json', [
@@ -157,7 +163,7 @@ export default class LevelLoaderScene extends Phaser.Scene {
         this.load.setPath('assets/Levels/');
         this.map.tilesets.forEach((b) => {
             this.load.image(b.name);
-            console.log(b.name);
+            //console.log(b.name);
         });
     }
 }

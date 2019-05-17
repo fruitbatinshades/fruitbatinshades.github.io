@@ -3,7 +3,7 @@ import Bob from '../Sprites/Bob.js';
 import Flit from '../Sprites/Flit.js';
 import Boxes from '../Sprites/Boxes.js';
 import Enums from './Tilemaps.js';
-import Interaction from '../Sprites/Interaction.js';
+import Interaction from './Interaction.js';
 import HUD from '../Scenes/HUD.js';
 import Dialog from '../Scenes/Dialog.js';
 import Tip from '../Utils/Tips.js';
@@ -19,6 +19,7 @@ export default class Level extends Phaser.Scene {
     totalFlies = 0;
     debug = false;
     modalActive = false;
+
     get ActivePlayer() {
         return this.registry.get('ActivePlayer');
     }
@@ -32,12 +33,17 @@ export default class Level extends Phaser.Scene {
     reset() {
         this.totalShrooms = 0;
         this.totalFlies = 0;
+        this.mapLayers = null;
+        this.interactionZones = null;
     }
     //NB: Call from preload
     preload() {
         this.load.tilemapTiledJSON(this.registry.get('currentLevel'), `assets/Levels/${this.registry.get('currentLevel')}.json`);
-        this.map = this.make.tilemap({ key: this.registry.get('currentLevel') });
-        if (this.map.properties["debug"]) this.debug = this.map.properties["debug"];
+        this.map = this.make.tilemap({ key: this.registry.get('currentLevel'), insertNull: true });
+        // if (this.map.properties["debug"]) {
+        //     console.warn('debug enabled by map properties');
+        //     this.game.debugOn = this.map.properties["debug"];
+        // }
 
         // set the boundaries of our game world
         this.physics.world.bounds.width = this.map.widthInPixels;
@@ -50,12 +56,14 @@ export default class Level extends Phaser.Scene {
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.ctrlKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.CTRL);
+        this.dKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+        this.rKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
-        if (this.debug) {
+        if (this.game.debugOn) {
             this.input.on('gameobjectdown', function (pointer, gameObject) {
                 if (gameObject.toolInfo) {
                     gameObject.toolInfo.visible = !gameObject.toolInfo.visible;
-                    console.log(gameObject.toolInfo.visible);
+                    //console.log(gameObject.toolInfo.visible);
                 }
             });
         }
@@ -73,16 +81,25 @@ export default class Level extends Phaser.Scene {
         }, this);
         //Character died so restart
         this.events.on('died', function (player) {
-            this.scene.pause('HUD');
-            this.scene.restart();
+            this.restartLevel();
         }, this);
         this.events.once('shutdown', (a, b) => {
             console.log('shutdown', a, b);
+            this.events.off('preupdate');
+            this.events.off('sceneUpdate');
             this.events.off('levelcomplete');
             this.events.off('died');
             this.events.off('gameobjectdown');
             this.events.off('dialogclosed');
         }, this);
+        
+        this.events.on('preupdate', this.preUpdate, this);
+    }
+    restartLevel() {
+        this.scene.pause('HUD');
+        this.scene.stop();
+        //this.scene.start();
+        this.scene.restart();
     }
     create() { 
         console.log('Level create');
@@ -97,6 +114,12 @@ export default class Level extends Phaser.Scene {
             this.events.emit('updateHUD', this.game.Flit);
         }
     }
+    preUpdate(delta) {
+        if (this.game.debugOn) {
+            this.game.objs.push([this.bob, this.flit]);
+            this.game.drawCollision(this);
+        }
+    }
     /**
      * Crete the maps, player and set up collisions
      * @param {PhaserScene} scene The scene to populate
@@ -105,16 +128,16 @@ export default class Level extends Phaser.Scene {
         this.reset();
         let sets = [];
         this.map.tilesets.forEach((b) => {
-            //console.log(`Added tilesetImage ${b.name}`);
             this.map.addTilesetImage(b.name, b.name, b.tileWidth, b.tileHeight,1,2);
             sets.push(b.name);
         });
         
         this.createPlayer();
+
+        /** @type {object{Phaser.Tilemaps. DynamicTilemapLayer}} */
         this.mapLayers = {};
         //Tile layers
         this.map.layers.forEach((l) => {
-            //console.log(`Created static layer ${l.name}`, l);
             switch (l.properties.LayerType.toLowerCase()) {
                 case 'static':
                     this.mapLayers[l.name] = this.map.createStaticLayer(l.name, sets, 0, 0).setCollisionByExclusion([-1]);
@@ -132,7 +155,6 @@ export default class Level extends Phaser.Scene {
         });
         //object layers
         this.map.objects.forEach((l) => {
-            //console.log(`Created static layer ${l.name}`, l);
             switch (l.name) {
                 case 'Boxes':
                     var newBoxes = this.map.createFromObjects('Boxes', 'Box', { key: 'ComponentSheet', frame: this.switchIds.Boxes, origin: 0 });
@@ -142,8 +164,7 @@ export default class Level extends Phaser.Scene {
                 case 'Interaction':
                     //Get the rectangles from the map
                     this.mapLayers[l.name]= this.map.getObjectLayer('Interaction');
-                    this.interactionZones = new Interaction(this, [], l, this.mapLayers[l.name], this.debug );
-                    //scene.mapLayers[l.name].setDepth(l.properties.depth || 1);
+                    this.interactionZones = new Interaction(this, [], l, this.mapLayers[l.name], this.game.debugOn );
                     break;
                 case 'Sky':
                     //Add backgrounds
@@ -160,17 +181,14 @@ export default class Level extends Phaser.Scene {
                                     this.sky.add(o);
                                     o.setOrigin(0, 0);
                                     o.fixedToCamera = true;
-                                    o.setDepth(l.properties.depth || 1);
                                 }
                                 if (b.type == 'Image') {
                                     let o = this.add.image(b.x, b.y - img.height, name);
                                     o.setOrigin(0, 0);
-                                    o.setDepth(l.properties.depth || 1);
                                 }
                             }
                         }
                     });
-                    
                     break;
             }
         });
@@ -190,8 +208,10 @@ export default class Level extends Phaser.Scene {
             for (var i = 0; i < tiles.length; i++) {
                 var tile = tiles[i];
                 for (var j = 0; j < tile.length; j++) {
-                    if (tile[j].index === this.switchIds.Component.Fly) this.totalFlies++;
-                    if (tile[j].index === this.switchIds.Component.Shroom) this.totalShrooms++;
+                    if (tile[j] !== null) {
+                        if (tile[j].index === this.switchIds.Component.Fly) this.totalFlies++;
+                        if (tile[j].index === this.switchIds.Component.Shroom) this.totalShrooms++;
+                    }
                 }
             }
         }
@@ -200,6 +220,7 @@ export default class Level extends Phaser.Scene {
         this._ChangingPlayer = false;
 
         //scene.sound.playAudioSprite('sfx', 'music_zapsplat_rascals_123', {volume:.5, repeat:true});
+
         //when a box hits a tile
         this.events.on('boxTileCollide', (box, tile) => { 
             if (tile.constructor.name === 'InteractionZone') {
@@ -272,7 +293,17 @@ export default class Level extends Phaser.Scene {
             this.cameras.main.startFollow(this.ActivePlayer);
         }
     }
-    update() {
+    update(time, delta) {
+        //If d is pressed toggle debug
+        if(Phaser.Input.Keyboard.JustDown(this.dKey)){
+            this.game.debugOn = !this.game.debugOn;
+            this.game.drawCollision(this);
+        }
+        if (Phaser.Input.Keyboard.JustDown(this.rKey)) {
+            this.restartLevel();
+        }
+        this.events.emit('sceneUpdate');
+        //If a modal is not active process input
         if (!this.modalActive) {
             //Switch characters
             if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
@@ -292,13 +323,15 @@ export default class Level extends Phaser.Scene {
             this.game.Flit.idle();
         }
     }
+    /**
+     * Switch between Flit and Bob
+     */
     switchCharacter() {
         //stop current player activity
         this.ActivePlayer.idle();
         this.ActivePlayer.body.setVelocityX(0);
         //get the other character
         this.ActivePlayer = this.ActivePlayer.is('Bob') ? this.flit : this.bob;
-
         this.game._ChangingPlayer = true;
         //pan the camera 
         this.cameras.main.stopFollow();

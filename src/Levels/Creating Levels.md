@@ -37,15 +37,19 @@ Add a Tiled `point` where the `Name` is the filename of the image and the type i
 | Image | Name of image in the `Levels\Backgrounds\` folder | The image stays at the point (use for features) |
 
 #### Boxes (object Layer)
-Boxes block players and must be moved so that Flit or Bob can access areas by climbing on them. 
+Boxes block players and must be moved so that Flit or Bob can access areas by climbing on them. Dead weights fall and block players, Rocks can only be pushed by Bob
 
 You just need to add a tile and set the `Name:Box` and `Affects` to '', 'flit','bob'
 
+##### Box properties
+Only boxes read properties, rocks and dead weights do not use these
 | Property | Value | Description |
 |---|---|---|
 | `Name` | `Box` | A tile with a name of `Box` will be converted to a box object |
 | `Affect` | '', `Flit` or `Bob` | if this is not blank it will create a box that only Flit/Bob can lift |
-| `Counter` | integer | Number of times the box can be dropped before it disappears |
+| `Counter` | integer | Number of times the box can be dropped before it disappears (Box only) |
+| `DeadWeight` |string| Create a dead weight (should be 1x2 squares)|
+| `Rock` |string| Create a rock|
 
 #### InteractionTiles (Tile Layer)
 InteractionTiles are the graphical representation of effects and actions. They need to come from the `Components` tileset as we map the tiles to actions in the code. 
@@ -70,7 +74,7 @@ These are the properties you enter in the tiled editor
 | `Action` | The action for the zone or group |  |
 | `Effect` | The effect on the player | The name of the action |
 | `Transition` | The visual effect on the zone or group | The name of the transition |
-| `ZoneHeight` | Used to adjust the zone height (spikes, bridges etc.) | The height is shrunk to the bottom unless `ZoneHeightAt` is supplied |
+| `ZoneHeight` | Used to adjust the zone height (spikes, bridges etc.) | The height is shrunk to the bottom unless `ZoneHeightAt` is supplied. *N.B* Known tiles are automatically adjusted and `ZoneHeight` will override these |
 | `ZoneHeightAt` | Where the height is adjusted, top or bottom | If set to `T` the zone is shrunk towards the top, default is bottom |
 
 ##### Values
@@ -88,6 +92,7 @@ These are the values for the property in the tiled editor
 | `Slow` | Slow player movement | | `Affect` |
 | `Fast` | Speed player movement | | `Affect` |
 | `Slippy` | Player slides and can only jump |  | `Affect` |
+| `Push` | Player is forced in direction (fan) | {"x":0, "y":0} negative y is up, negative x is left  | `Affect` |
 
 | Transition | Description | Parameters | Target |
 |---|---|---|---|
