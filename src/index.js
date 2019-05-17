@@ -29,7 +29,7 @@ class Game extends Phaser.Game {
     super(config);
 
     this.levels = [
-      'Example', 'L1', 'L2'
+      'L1', 'L2', 'Lee1'
     ];
     this.levelIndex = 0;
     this.urlParams;
