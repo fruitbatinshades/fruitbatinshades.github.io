@@ -1,1 +1,0 @@
-tile-extruder -w 128 -h 64 -i GrassTerrain.png -o GrassTerrain.png

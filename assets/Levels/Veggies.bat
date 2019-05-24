@@ -1,1 +1,0 @@
-tile-extruder -w 64 -h 64 -i Veggies.png -o Veggies.png
