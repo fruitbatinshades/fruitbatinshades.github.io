@@ -18,7 +18,7 @@ export class BootScene extends Phaser.Scene {
     this.load.atlas('bob', 'assets/Bob/bob.png', 'assets/Bob/bob.json');
     this.load.atlas('spitter', 'assets/Baddies/spitter.png', 'assets/Baddies/spitter.json');
 
-    this.load.atlas('UI', 'assets/ui.png', 'assets/ui.json');
+    this.load.atlas('UI', 'assets/ui.png', 'assets/UI.json');
   //   this.load.atlas('clouds', 'assets/clouds.png', 'assets/clouds.json');
   }
 
